@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Alarm DJ</title>
+<title>Alarma Jeje</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -170,13 +170,19 @@
     padding: 20px;
     display: flex; flex-direction: column; gap: 14px;
   }
+  /* highlight when editing */
+  .form-card.editing {
+    border-color: var(--accent2);
+    box-shadow: 0 0 24px rgba(255,140,66,0.15);
+  }
+
   .input-row { display: flex; gap: 10px; }
   .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
   .input-group label {
     font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
     color: var(--muted); font-family: var(--font-mono);
   }
-  input[type="time"], input[type="text"] {
+  input[type="text"] {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -188,12 +194,18 @@
     outline: none;
     transition: border-color 0.2s;
     -webkit-appearance: none;
-    color-scheme: dark;
   }
-  input[type="time"]:focus, input[type="text"]:focus {
-    border-color: var(--accent);
-  }
+  input[type="text"]:focus { border-color: var(--accent); }
   input::placeholder { color: var(--muted); }
+
+  /* time input hint */
+  .time-hint {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--muted);
+    margin-top: 2px;
+  }
+  .time-hint.ok  { color: var(--green); }
+  .time-hint.err { color: var(--accent); }
 
   .yt-row { display: flex; gap: 8px; align-items: flex-end; }
   .yt-row .input-group { flex: 1; }
@@ -211,7 +223,10 @@
   }
   #btn-preview:hover { color: var(--accent); border-color: var(--accent); }
 
+  .form-btns { display: flex; gap: 10px; }
+
   #btn-add {
+    flex: 1;
     padding: 15px;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     border: none; border-radius: 8px;
@@ -223,28 +238,19 @@
   }
   #btn-add:active { transform: scale(0.97); }
 
-  /* ── REPEAT DAYS ── */
-  .days-row {
-    display: flex; gap: 6px;
-  }
-  .day-btn {
-    flex: 1;
-    padding: 8px 0;
+  #btn-cancel-edit {
+    display: none;
+    padding: 15px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 8px;
     color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 10px; letter-spacing: 1px;
+    font-family: var(--font-display);
+    font-size: 18px; letter-spacing: 2px;
     cursor: pointer;
-    transition: all 0.15s;
-    text-align: center;
+    transition: color 0.2s, border-color 0.2s;
   }
-  .day-btn.on {
-    background: rgba(255,60,95,0.15);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  #btn-cancel-edit:hover { color: var(--text); border-color: var(--muted); }
 
   /* ── ALARM LIST ── */
   #alarm-list { display: flex; flex-direction: column; gap: 10px; }
@@ -272,6 +278,10 @@
     50%    { box-shadow: 0 0 40px rgba(255,60,95,0.5); }
   }
   .alarm-card.disabled { opacity: 0.4; }
+  .alarm-card.being-edited {
+    border-color: var(--accent2);
+    box-shadow: 0 0 16px rgba(255,140,66,0.2);
+  }
 
   .alarm-time {
     font-family: var(--font-display);
@@ -292,11 +302,6 @@
     font-family: var(--font-mono);
     font-size: 10px; color: var(--muted); margin-top: 3px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .alarm-days {
-    font-family: var(--font-mono);
-    font-size: 9px; letter-spacing: 1px;
-    color: var(--accent2); margin-top: 3px;
   }
 
   .alarm-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
@@ -322,6 +327,14 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.4);
   }
   .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+  .btn-edit {
+    background: none; border: none;
+    color: var(--muted); font-size: 15px; cursor: pointer;
+    padding: 4px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .btn-edit:hover { color: var(--accent2); }
 
   .btn-delete {
     background: none; border: none;
@@ -385,14 +398,12 @@
     line-height: 1.6;
     margin-top: 8px;
   }
-  .tip strong { color: var(--accent2); }
 
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-  /* ── MOBILE TWEAKS ── */
   @media (max-width: 400px) {
     .input-row { flex-direction: column; }
     .alarm-time { font-size: 28px; min-width: 74px; }
@@ -403,7 +414,7 @@
 
 <!-- ── UNLOCK SCREEN ── -->
 <div id="unlock-banner">
-  <div class="logo-big">ALARM DJ</div>
+  <div class="logo-big">ALARMA JEJE</div>
   <p>Tocá el botón para activar el audio.<br>
   <strong>Mantené esta pestaña abierta</strong> para que las alarmas funcionen.</p>
   <button id="btn-unlock" onclick="unlock()">▶ ACTIVAR</button>
@@ -413,7 +424,7 @@
 <div class="app">
 
   <header>
-    <div class="logo">ALARM DJ</div>
+    <div class="logo">ALARMA JEJE</div>
     <div class="header-right">
       <div id="status-dot"></div>
       <span id="status-label">STANDBY</span>
@@ -428,30 +439,18 @@
   </div>
 
   <!-- FORM -->
-  <div class="section-title">— Nueva alarma —</div>
-  <div class="form-card">
+  <div class="section-title" id="form-title">— Nueva alarma —</div>
+  <div class="form-card" id="form-card">
 
     <div class="input-row">
       <div class="input-group">
         <label>Hora</label>
-        <input type="time" id="inp-time">
+        <input type="text" id="inp-time" placeholder="08:30" maxlength="5" inputmode="numeric">
+        <div class="time-hint" id="time-hint">Formato 24h · ej: 07:00 o 22:45</div>
       </div>
       <div class="input-group">
         <label>Nombre</label>
         <input type="text" id="inp-name" placeholder="Mi alarma">
-      </div>
-    </div>
-
-    <div class="input-group">
-      <label>Repetir</label>
-      <div class="days-row" id="days-row">
-        <div class="day-btn" data-d="0">DO</div>
-        <div class="day-btn" data-d="1">LU</div>
-        <div class="day-btn" data-d="2">MA</div>
-        <div class="day-btn" data-d="3">MI</div>
-        <div class="day-btn" data-d="4">JU</div>
-        <div class="day-btn" data-d="5">VI</div>
-        <div class="day-btn" data-d="6">SA</div>
       </div>
     </div>
 
@@ -465,11 +464,14 @@
       </div>
     </div>
 
-    <button id="btn-add" onclick="addAlarm()">+ AGREGAR ALARMA</button>
+    <div class="form-btns">
+      <button id="btn-add" onclick="submitForm()">+ AGREGAR ALARMA</button>
+      <button id="btn-cancel-edit" onclick="cancelEdit()">✕ CANCELAR</button>
+    </div>
   </div>
 
   <div class="tip">
-    💡 <strong>Cómo usar:</strong> Buscá el video en YouTube, copiá la URL y pegala arriba. El video se reproduce solo cuando llegue la hora.
+    💡 Buscá el video en YouTube, copiá la URL y pegala arriba. La hora en formato 24h: para las 8pm escribí <strong>20:00</strong>.
   </div>
 
   <!-- LIST -->
@@ -488,22 +490,16 @@
 // ─────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────
-let alarms      = JSON.parse(localStorage.getItem('alarms') || '[]');
-let ytPlayer    = null;
-let ytReady     = false;
-let ringingId   = null;
-let tickTimer   = null;
-let unlocked    = false;
-
-const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-let selectedDays = new Set();
+let alarms    = JSON.parse(localStorage.getItem('alarms') || '[]');
+let ytPlayer  = null;
+let ytReady   = false;
+let ringingId = null;
+let editingId = null;   // null = adding new, number = editing existing
 
 // ─────────────────────────────────────────
 //  YOUTUBE IFRAME API
 // ─────────────────────────────────────────
-window.onYouTubeIframeAPIReady = function () {
-  ytReady = true;
-};
+window.onYouTubeIframeAPIReady = function () { ytReady = true; };
 
 function loadYTApi() {
   if (document.getElementById('yt-api-script')) return;
@@ -517,37 +513,47 @@ function createPlayer(videoId, autoplay) {
   const container = document.getElementById('yt-container');
   container.innerHTML = '<div id="yt-player-el"></div>';
   container.classList.add('visible');
-
   ytPlayer = new YT.Player('yt-player-el', {
     videoId,
-    playerVars: {
-      autoplay:       autoplay ? 1 : 0,
-      controls:       1,
-      modestbranding: 1,
-      rel:            0,
-      playsinline:    1,
-    },
+    playerVars: { autoplay: autoplay?1:0, controls:1, modestbranding:1, rel:0, playsinline:1 },
     events: {
       onReady: (e) => { if (autoplay) e.target.playVideo(); },
-      onError: (e) => {
-        alert('⚠️ Este video no se puede reproducir aquí. Probá con otra URL.');
-        stopAlarm();
-      }
+      onError: ()  => { alert('⚠️ Este video no se puede reproducir aquí. Probá con otra URL.'); stopAlarm(); }
     }
   });
 }
 
 function extractVideoId(url) {
-  const patterns = [
-    /(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/
-  ];
-  for (const p of patterns) {
-    const m = url.match(p);
-    if (m) return m[1];
-  }
-  // If it's already just an ID
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
   if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
   return null;
+}
+
+// ─────────────────────────────────────────
+//  TIME INPUT VALIDATION
+// ─────────────────────────────────────────
+const inpTime = document.getElementById('inp-time');
+const timeHint = document.getElementById('time-hint');
+
+// auto-insert colon after 2 digits
+inpTime.addEventListener('input', () => {
+  let v = inpTime.value.replace(/\D/g,'');
+  if (v.length > 4) v = v.slice(0,4);
+  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
+  inpTime.value = v;
+  validateTimeInput();
+});
+
+function validateTimeInput() {
+  const v = inpTime.value;
+  if (!v) { timeHint.textContent = 'Formato 24h · ej: 07:00 o 22:45'; timeHint.className = 'time-hint'; return false; }
+  if (!/^\d{2}:\d{2}$/.test(v)) { timeHint.textContent = 'Escribí 4 números · ej: 0730 → 07:30'; timeHint.className = 'time-hint err'; return false; }
+  const [h,m] = v.split(':').map(Number);
+  if (h > 23 || m > 59) { timeHint.textContent = 'Hora inválida · máx 23:59'; timeHint.className = 'time-hint err'; return false; }
+  timeHint.textContent = '✓ Hora válida';
+  timeHint.className = 'time-hint ok';
+  return true;
 }
 
 // ─────────────────────────────────────────
@@ -555,22 +561,20 @@ function extractVideoId(url) {
 // ─────────────────────────────────────────
 function startClock() {
   function tick() {
-    const now  = new Date();
-    const h    = String(now.getHours()).padStart(2,'0');
-    const m    = String(now.getMinutes()).padStart(2,'0');
-    const s    = String(now.getSeconds()).padStart(2,'0');
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
     document.getElementById('clock').textContent = `${h}:${m}:${s}`;
-
-    const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const days   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     document.getElementById('date-str').textContent =
       `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-
     checkAlarms(now);
     updateNextAlarm();
   }
   tick();
-  tickTimer = setInterval(tick, 1000);
+  setInterval(tick, 1000);
 }
 
 // ─────────────────────────────────────────
@@ -578,17 +582,12 @@ function startClock() {
 // ─────────────────────────────────────────
 function checkAlarms(now) {
   if (ringingId !== null) return;
+  if (now.getSeconds() !== 0) return;
   const hh = String(now.getHours()).padStart(2,'0');
   const mm = String(now.getMinutes()).padStart(2,'0');
-  const ss = now.getSeconds();
-  if (ss !== 0) return; // only trigger at :00
-
-  const day = now.getDay();
-
   for (const a of alarms) {
     if (!a.enabled) continue;
     if (a.time !== `${hh}:${mm}`) continue;
-    if (a.days.length > 0 && !a.days.includes(day)) continue;
     triggerAlarm(a);
     break;
   }
@@ -596,53 +595,35 @@ function checkAlarms(now) {
 
 function triggerAlarm(alarm) {
   ringingId = alarm.id;
-
-  // visual
   document.querySelectorAll('.alarm-card').forEach(el => {
     if (el.dataset.id === String(alarm.id)) el.classList.add('ringing');
   });
-
-  const stopBtn = document.getElementById('stop-btn');
-  stopBtn.classList.add('visible');
-
+  document.getElementById('stop-btn').classList.add('visible');
   document.getElementById('status-dot').classList.add('active');
   document.getElementById('status-label').textContent = 'SONANDO';
 
-  // play
   const vid = extractVideoId(alarm.url || '');
-  if (vid && ytReady) {
-    createPlayer(vid, true);
-  } else {
-    // fallback beep
-    playBeep();
-  }
+  if (vid && ytReady) createPlayer(vid, true);
+  else playBeep();
 
-  // auto-disable one-shot alarms
-  if (alarm.days.length === 0) {
-    alarm.enabled = false;
-    saveAlarms();
-    renderAlarms();
-  }
+  // one-shot: disable after firing
+  alarm.enabled = false;
+  saveAlarms();
+  renderAlarms();
 
-  // notify
-  if (Notification.permission === 'granted') {
+  if (Notification.permission === 'granted')
     new Notification('⏰ ' + alarm.name, { body: alarm.time, silent: true });
-  }
 }
 
 function stopAlarm() {
-  if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-    ytPlayer.stopVideo();
-  }
+  if (ytPlayer && typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
   const container = document.getElementById('yt-container');
   container.classList.remove('visible');
   container.innerHTML = '<div id="yt-player-el"></div>';
   ytPlayer = null;
-
   document.getElementById('stop-btn').classList.remove('visible');
   document.getElementById('status-dot').classList.remove('active');
   document.getElementById('status-label').textContent = 'ACTIVO';
-
   document.querySelectorAll('.alarm-card').forEach(el => el.classList.remove('ringing'));
   ringingId = null;
 }
@@ -654,11 +635,9 @@ function playBeep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     function beep(freq, start, dur) {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
+      const o = ctx.createOscillator(), g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = freq;
-      o.type = 'sine';
+      o.frequency.value = freq; o.type = 'sine';
       g.gain.setValueAtTime(0.3, ctx.currentTime + start);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
       o.start(ctx.currentTime + start);
@@ -669,18 +648,15 @@ function playBeep() {
 }
 
 // ─────────────────────────────────────────
-//  NEXT ALARM DISPLAY
+//  NEXT ALARM
 // ─────────────────────────────────────────
 function updateNextAlarm() {
   const active = alarms.filter(a => a.enabled);
-  if (active.length === 0) {
-    document.getElementById('next-alarm').textContent = '';
-    return;
-  }
+  if (!active.length) { document.getElementById('next-alarm').textContent = ''; return; }
   const now = new Date();
   let minDiff = Infinity, minAlarm = null;
   for (const a of active) {
-    const [h, m] = a.time.split(':').map(Number);
+    const [h,m] = a.time.split(':').map(Number);
     const next = new Date(now);
     next.setHours(h, m, 0, 0);
     if (next <= now) next.setDate(next.getDate() + 1);
@@ -691,96 +667,114 @@ function updateNextAlarm() {
   const h = Math.floor(minDiff / 3600000);
   const m = Math.floor((minDiff % 3600000) / 60000);
   let str = `PRÓXIMA · ${minAlarm.name} · ${minAlarm.time}`;
-  if (h > 0) str += ` · en ${h}h ${m}m`;
-  else if (m > 0) str += ` · en ${m}m`;
-  else str += ` · ¡AHORA!`;
+  str += h > 0 ? ` · en ${h}h ${m}m` : m > 0 ? ` · en ${m}m` : ` · ¡AHORA!`;
   document.getElementById('next-alarm').textContent = str;
 }
 
 // ─────────────────────────────────────────
-//  ADD / REMOVE
+//  ADD / EDIT FORM
 // ─────────────────────────────────────────
-function addAlarm() {
-  const time = document.getElementById('inp-time').value;
+function submitForm() {
+  const time = inpTime.value.trim();
   const name = document.getElementById('inp-name').value.trim() || 'Alarma';
   const url  = document.getElementById('inp-url').value.trim();
 
-  if (!time) { alert('Elegí una hora primero.'); return; }
+  if (!validateTimeInput()) { alert('Escribí una hora válida. Ejemplo: 07:30'); return; }
   if (url && !extractVideoId(url)) {
     alert('La URL de YouTube no parece válida. Asegurate de pegar la URL completa.'); return;
   }
 
-  const alarm = {
-    id:      Date.now(),
-    time,
-    name,
-    url,
-    days:    [...selectedDays],
-    enabled: true
-  };
+  if (editingId !== null) {
+    // UPDATE existing
+    const a = alarms.find(x => x.id === editingId);
+    if (a) { a.time = time; a.name = name; a.url = url; a.enabled = true; }
+    cancelEdit();
+  } else {
+    // CREATE new
+    alarms.push({ id: Date.now(), time, name, url, enabled: true });
+    resetForm();
+  }
 
-  alarms.push(alarm);
   saveAlarms();
   renderAlarms();
   updateNextAlarm();
+}
 
-  // reset form
-  document.getElementById('inp-time').value = '';
+function startEdit(id) {
+  const a = alarms.find(x => x.id === id);
+  if (!a) return;
+  editingId = id;
+
+  inpTime.value = a.time;
+  document.getElementById('inp-name').value = a.name;
+  document.getElementById('inp-url').value  = a.url || '';
+  validateTimeInput();
+
+  document.getElementById('btn-add').textContent          = '✓ GUARDAR CAMBIOS';
+  document.getElementById('btn-cancel-edit').style.display = 'block';
+  document.getElementById('form-title').textContent        = '— Editando alarma —';
+  document.getElementById('form-card').classList.add('editing');
+
+  // highlight card
+  document.querySelectorAll('.alarm-card').forEach(el => {
+    el.classList.toggle('being-edited', el.dataset.id === String(id));
+  });
+
+  // scroll to form
+  document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  resetForm();
+  document.getElementById('btn-add').textContent           = '+ AGREGAR ALARMA';
+  document.getElementById('btn-cancel-edit').style.display = 'none';
+  document.getElementById('form-title').textContent        = '— Nueva alarma —';
+  document.getElementById('form-card').classList.remove('editing');
+  document.querySelectorAll('.alarm-card').forEach(el => el.classList.remove('being-edited'));
+}
+
+function resetForm() {
+  inpTime.value = '';
   document.getElementById('inp-name').value = '';
   document.getElementById('inp-url').value  = '';
-  selectedDays.clear();
-  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('on'));
+  timeHint.textContent  = 'Formato 24h · ej: 07:00 o 22:45';
+  timeHint.className    = 'time-hint';
 }
 
 function deleteAlarm(id) {
+  if (editingId === id) cancelEdit();
   alarms = alarms.filter(a => a.id !== id);
-  saveAlarms();
-  renderAlarms();
-  updateNextAlarm();
+  saveAlarms(); renderAlarms(); updateNextAlarm();
 }
 
 function toggleAlarm(id) {
   const a = alarms.find(x => x.id === id);
-  if (a) { a.enabled = !a.enabled; saveAlarms(); updateNextAlarm(); }
-  const card = document.querySelector(`.alarm-card[data-id="${id}"]`);
-  if (card) card.classList.toggle('disabled', !a.enabled);
+  if (a) { a.enabled = !a.enabled; saveAlarms(); updateNextAlarm(); renderAlarms(); }
 }
 
-function saveAlarms() {
-  localStorage.setItem('alarms', JSON.stringify(alarms));
-}
+function saveAlarms() { localStorage.setItem('alarms', JSON.stringify(alarms)); }
 
 // ─────────────────────────────────────────
 //  RENDER
 // ─────────────────────────────────────────
 function renderAlarms() {
   const list = document.getElementById('alarm-list');
-  if (alarms.length === 0) {
-    list.innerHTML = `<div class="empty-state">
-      <div class="icon">⏰</div>
-      Todavía no hay alarmas.<br>Agregá una arriba.
-    </div>`;
+  if (!alarms.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">⏰</div>Todavía no hay alarmas.<br>Agregá una arriba.</div>`;
     return;
   }
-
-  // sort by time
   const sorted = [...alarms].sort((a,b) => a.time.localeCompare(b.time));
-
   list.innerHTML = sorted.map(a => {
     const vid = extractVideoId(a.url || '');
-    const subLabel = vid
-      ? `▶ ${a.url.length > 35 ? a.url.slice(0,35)+'…' : a.url}`
-      : '🔔 Beep de sistema';
-    const daysLabel = a.days.length > 0
-      ? a.days.sort().map(d => DAYS_ES[d]).join(' · ')
-      : 'Una sola vez';
+    const subLabel = vid ? `▶ ${a.url.length > 38 ? a.url.slice(0,38)+'…' : a.url}` : '🔔 Beep de sistema';
+    const beingEdited = editingId === a.id;
     return `
-    <div class="alarm-card${a.enabled?'':' disabled'}" data-id="${a.id}">
+    <div class="alarm-card${a.enabled?'':' disabled'}${beingEdited?' being-edited':''}" data-id="${a.id}">
       <div class="alarm-time">${a.time}</div>
       <div class="alarm-info">
         <div class="alarm-name">${escHtml(a.name)}</div>
         <div class="alarm-sub">${escHtml(subLabel)}</div>
-        <div class="alarm-days">${daysLabel}</div>
       </div>
       <div class="alarm-actions">
         <label class="toggle">
@@ -788,6 +782,7 @@ function renderAlarms() {
           <div class="toggle-track"></div>
           <div class="toggle-thumb"></div>
         </label>
+        <button class="btn-edit"   onclick="startEdit(${a.id})"   title="Editar">✏️</button>
         <button class="btn-delete" onclick="deleteAlarm(${a.id})" title="Eliminar">✕</button>
       </div>
     </div>`;
@@ -814,43 +809,21 @@ function previewVideo() {
 //  UNLOCK
 // ─────────────────────────────────────────
 function unlock() {
-  unlocked = true;
   document.getElementById('unlock-banner').style.display = 'none';
-
   loadYTApi();
   startClock();
-
   document.getElementById('status-dot').classList.add('active');
   document.getElementById('status-label').textContent = 'ACTIVO';
-
-  // Request notification permission
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-
-  // Keep screen on (mobile)
-  if ('wakeLock' in navigator) {
-    navigator.wakeLock.request('screen').catch(() => {});
-  }
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
 }
 
 // ─────────────────────────────────────────
-//  DAYS SELECTOR
-// ─────────────────────────────────────────
-document.getElementById('days-row').addEventListener('click', e => {
-  const btn = e.target.closest('.day-btn');
-  if (!btn) return;
-  const d = parseInt(btn.dataset.d);
-  if (selectedDays.has(d)) { selectedDays.delete(d); btn.classList.remove('on'); }
-  else                      { selectedDays.add(d);    btn.classList.add('on'); }
-});
-
-// ─────────────────────────────────────────
-//  ENTER key on inputs
+//  ENTER key
 // ─────────────────────────────────────────
 ['inp-time','inp-name','inp-url'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => {
-    if (e.key === 'Enter') addAlarm();
+    if (e.key === 'Enter') submitForm();
   });
 });
 
