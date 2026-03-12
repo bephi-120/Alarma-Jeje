@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Alarm DJ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #111118;
+    --card:      #16161f;
+    --border:    #2a2a3a;
+    --accent:    #ff3c5f;
+    --accent2:   #ff8c42;
+    --green:     #00e5a0;
+    --text:      #e8e8f0;
+    --muted:     #5a5a72;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-mono:    'DM Mono', monospace;
+    --font-body:    'DM Sans', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px;
+    pointer-events: none;
+  }
+
+  /* ── GLOW BLOB ── */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -20vh; left: 50%;
+    transform: translateX(-50%);
+    width: 80vw; height: 60vh;
+    background: radial-gradient(ellipse, rgba(255,60,95,0.07) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .app {
+    position: relative; z-index: 1;
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 0 16px 120px;
+    min-height: 100vh;
+  }
+
+  /* ── UNLOCK BANNER ── */
+  #unlock-banner {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(10,10,15,0.97);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px; padding: 32px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+  }
+  #unlock-banner .logo-big {
+    font-family: var(--font-display);
+    font-size: clamp(52px, 14vw, 80px);
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+  #unlock-banner p {
+    color: var(--muted); font-size: 14px; max-width: 280px; line-height: 1.6;
+  }
+  #unlock-banner p strong { color: var(--text); }
+  #btn-unlock {
+    margin-top: 8px;
+    padding: 18px 48px;
+    font-family: var(--font-display);
+    font-size: 22px; letter-spacing: 3px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 6px;
+    color: #fff; cursor: pointer;
+    box-shadow: 0 0 40px rgba(255,60,95,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  #btn-unlock:active { transform: scale(0.96); box-shadow: 0 0 20px rgba(255,60,95,0.3); }
+
+  /* ── HEADER ── */
+  header {
+    padding: 28px 0 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-size: 32px; letter-spacing: 3px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  #status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  #status-dot.active {
+    background: var(--green);
+    box-shadow: 0 0 10px var(--green);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100%{ box-shadow: 0 0 6px var(--green); }
+    50%     { box-shadow: 0 0 16px var(--green); }
+  }
+  #status-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); letter-spacing: 1px; }
+
+  /* ── CLOCK ── */
+  .clock-wrap {
+    text-align: center;
+    padding: 20px 0 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  #clock {
+    font-family: var(--font-display);
+    font-size: clamp(68px, 22vw, 110px);
+    letter-spacing: 4px;
+    line-height: 1;
+    color: var(--text);
+    text-shadow: 0 0 60px rgba(255,255,255,0.05);
+  }
+  #date-str {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); margin-top: 6px;
+  }
+
+  /* ── NEXT ALARM ── */
+  #next-alarm {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12px; letter-spacing: 2px;
+    color: var(--accent2);
+    height: 20px;
+    margin: 10px 0 0;
+    transition: opacity 0.3s;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted);
+    margin: 28px 0 12px;
+  }
+
+  /* ── ALARM FORM ── */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .input-row { display: flex; gap: 10px; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .input-group label {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); font-family: var(--font-mono);
+  }
+  input[type="time"], input[type="text"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    padding: 12px 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    color-scheme: dark;
+  }
+  input[type="time"]:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+  input::placeholder { color: var(--muted); }
+
+  .yt-row { display: flex; gap: 8px; align-items: flex-end; }
+  .yt-row .input-group { flex: 1; }
+  #btn-preview {
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    transition: color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+    display: flex; align-items: center;
+  }
+  #btn-preview:hover { color: var(--accent); border-color: var(--accent); }
+
+  #btn-add {
+    padding: 15px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 8px;
+    color: #fff; font-family: var(--font-display);
+    font-size: 18px; letter-spacing: 2px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    box-shadow: 0 4px 20px rgba(255,60,95,0.3);
+  }
+  #btn-add:active { transform: scale(0.97); }
+
+  /* ── REPEAT DAYS ── */
+  .days-row {
+    display: flex; gap: 6px;
+  }
+  .day-btn {
+    flex: 1;
+    padding: 8px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .day-btn.on {
+    background: rgba(255,60,95,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── ALARM LIST ── */
+  #alarm-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .alarm-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    animation: slide-in 0.25s ease;
+  }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .alarm-card.ringing {
+    border-color: var(--accent);
+    box-shadow: 0 0 30px rgba(255,60,95,0.25);
+    animation: ring-pulse 0.8s infinite;
+  }
+  @keyframes ring-pulse {
+    0%,100%{ box-shadow: 0 0 20px rgba(255,60,95,0.2); }
+    50%    { box-shadow: 0 0 40px rgba(255,60,95,0.5); }
+  }
+  .alarm-card.disabled { opacity: 0.4; }
+
+  .alarm-time {
+    font-family: var(--font-display);
+    font-size: 36px; letter-spacing: 2px;
+    line-height: 1;
+    min-width: 90px;
+    color: var(--text);
+  }
+  .alarm-card.disabled .alarm-time { color: var(--muted); }
+
+  .alarm-info { flex: 1; min-width: 0; }
+  .alarm-name {
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .alarm-sub {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--muted); margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .alarm-days {
+    font-family: var(--font-mono);
+    font-size: 9px; letter-spacing: 1px;
+    color: var(--accent2); margin-top: 3px;
+  }
+
+  .alarm-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative; width: 42px; height: 24px; cursor: pointer;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--border);
+    border-radius: 12px;
+    transition: background 0.2s;
+  }
+  .toggle input:checked ~ .toggle-track { background: var(--green); }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: #fff; border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+  .btn-delete {
+    background: none; border: none;
+    color: var(--muted); font-size: 18px; cursor: pointer;
+    padding: 4px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .btn-delete:hover { color: var(--accent); }
+
+  /* ── STOP BUTTON ── */
+  #stop-btn {
+    display: none;
+    position: fixed;
+    bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 50;
+    padding: 18px 48px;
+    background: var(--accent);
+    border: none; border-radius: 50px;
+    color: #fff; font-family: var(--font-display);
+    font-size: 22px; letter-spacing: 3px;
+    cursor: pointer;
+    box-shadow: 0 8px 40px rgba(255,60,95,0.5);
+    animation: stop-bounce 0.5s infinite alternate;
+  }
+  @keyframes stop-bounce {
+    from { transform: translateX(-50%) translateY(0); }
+    to   { transform: translateX(-50%) translateY(-5px); }
+  }
+  #stop-btn.visible { display: block; }
+
+  /* ── PLAYER ── */
+  #yt-container {
+    position: fixed; bottom: 100px; right: 16px;
+    width: 200px; height: 112px;
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border);
+    display: none;
+    z-index: 40;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  #yt-container.visible { display: block; }
+  #yt-container iframe { width: 100%; height: 100%; border: none; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 2;
+  }
+  .empty-state .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.3; }
+
+  /* ── TIP ── */
+  .tip {
+    background: rgba(255,140,66,0.08);
+    border: 1px solid rgba(255,140,66,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px; color: var(--accent2);
+    line-height: 1.6;
+    margin-top: 8px;
+  }
+  .tip strong { color: var(--accent2); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── MOBILE TWEAKS ── */
+  @media (max-width: 400px) {
+    .input-row { flex-direction: column; }
+    .alarm-time { font-size: 28px; min-width: 74px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── UNLOCK SCREEN ── -->
+<div id="unlock-banner">
+  <div class="logo-big">ALARM DJ</div>
+  <p>Tocá el botón para activar el audio.<br>
+  <strong>Mantené esta pestaña abierta</strong> para que las alarmas funcionen.</p>
+  <button id="btn-unlock" onclick="unlock()">▶ ACTIVAR</button>
+  <p style="font-size:11px;margin-top:-8px;">Tus alarmas se guardan en este dispositivo.</p>
+</div>
+
+<div class="app">
+
+  <header>
+    <div class="logo">ALARM DJ</div>
+    <div class="header-right">
+      <div id="status-dot"></div>
+      <span id="status-label">STANDBY</span>
+    </div>
+  </header>
+
+  <!-- CLOCK -->
+  <div class="clock-wrap">
+    <div id="clock">00:00:00</div>
+    <div id="date-str">—</div>
+    <div id="next-alarm"></div>
+  </div>
+
+  <!-- FORM -->
+  <div class="section-title">— Nueva alarma —</div>
+  <div class="form-card">
+
+    <div class="input-row">
+      <div class="input-group">
+        <label>Hora</label>
+        <input type="time" id="inp-time">
+      </div>
+      <div class="input-group">
+        <label>Nombre</label>
+        <input type="text" id="inp-name" placeholder="Mi alarma">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Repetir</label>
+      <div class="days-row" id="days-row">
+        <div class="day-btn" data-d="0">DO</div>
+        <div class="day-btn" data-d="1">LU</div>
+        <div class="day-btn" data-d="2">MA</div>
+        <div class="day-btn" data-d="3">MI</div>
+        <div class="day-btn" data-d="4">JU</div>
+        <div class="day-btn" data-d="5">VI</div>
+        <div class="day-btn" data-d="6">SA</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>URL de YouTube</label>
+      <div class="yt-row">
+        <div class="input-group" style="margin:0">
+          <input type="text" id="inp-url" placeholder="https://youtube.com/watch?v=...">
+        </div>
+        <button id="btn-preview" title="Previsualizar" onclick="previewVideo()">▶</button>
+      </div>
+    </div>
+
+    <button id="btn-add" onclick="addAlarm()">+ AGREGAR ALARMA</button>
+  </div>
+
+  <div class="tip">
+    💡 <strong>Cómo usar:</strong> Buscá el video en YouTube, copiá la URL y pegala arriba. El video se reproduce solo cuando llegue la hora.
+  </div>
+
+  <!-- LIST -->
+  <div class="section-title" style="margin-top:32px;">— Alarmas —</div>
+  <div id="alarm-list"></div>
+
+</div>
+
+<!-- PLAYER -->
+<div id="yt-container"><div id="yt-player-el"></div></div>
+
+<!-- STOP -->
+<button id="stop-btn" onclick="stopAlarm()">⏹ DETENER</button>
+
+<script>
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+let alarms      = JSON.parse(localStorage.getItem('alarms') || '[]');
+let ytPlayer    = null;
+let ytReady     = false;
+let ringingId   = null;
+let tickTimer   = null;
+let unlocked    = false;
+
+const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+let selectedDays = new Set();
+
+// ─────────────────────────────────────────
+//  YOUTUBE IFRAME API
+// ─────────────────────────────────────────
+window.onYouTubeIframeAPIReady = function () {
+  ytReady = true;
+};
+
+function loadYTApi() {
+  if (document.getElementById('yt-api-script')) return;
+  const s = document.createElement('script');
+  s.id  = 'yt-api-script';
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+}
+
+function createPlayer(videoId, autoplay) {
+  const container = document.getElementById('yt-container');
+  container.innerHTML = '<div id="yt-player-el"></div>';
+  container.classList.add('visible');
+
+  ytPlayer = new YT.Player('yt-player-el', {
+    videoId,
+    playerVars: {
+      autoplay:       autoplay ? 1 : 0,
+      controls:       1,
+      modestbranding: 1,
+      rel:            0,
+      playsinline:    1,
+    },
+    events: {
+      onReady: (e) => { if (autoplay) e.target.playVideo(); },
+      onError: (e) => {
+        alert('⚠️ Este video no se puede reproducir aquí. Probá con otra URL.');
+        stopAlarm();
+      }
+    }
+  });
+}
+
+function extractVideoId(url) {
+  const patterns = [
+    /(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  // If it's already just an ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+  return null;
+}
+
+// ─────────────────────────────────────────
+//  CLOCK
+// ─────────────────────────────────────────
+function startClock() {
+  function tick() {
+    const now  = new Date();
+    const h    = String(now.getHours()).padStart(2,'0');
+    const m    = String(now.getMinutes()).padStart(2,'0');
+    const s    = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+
+    const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    document.getElementById('date-str').textContent =
+      `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+    checkAlarms(now);
+    updateNextAlarm();
+  }
+  tick();
+  tickTimer = setInterval(tick, 1000);
+}
+
+// ─────────────────────────────────────────
+//  ALARM CHECK
+// ─────────────────────────────────────────
+function checkAlarms(now) {
+  if (ringingId !== null) return;
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = now.getSeconds();
+  if (ss !== 0) return; // only trigger at :00
+
+  const day = now.getDay();
+
+  for (const a of alarms) {
+    if (!a.enabled) continue;
+    if (a.time !== `${hh}:${mm}`) continue;
+    if (a.days.length > 0 && !a.days.includes(day)) continue;
+    triggerAlarm(a);
+    break;
+  }
+}
+
+function triggerAlarm(alarm) {
+  ringingId = alarm.id;
+
+  // visual
+  document.querySelectorAll('.alarm-card').forEach(el => {
+    if (el.dataset.id === String(alarm.id)) el.classList.add('ringing');
+  });
+
+  const stopBtn = document.getElementById('stop-btn');
+  stopBtn.classList.add('visible');
+
+  document.getElementById('status-dot').classList.add('active');
+  document.getElementById('status-label').textContent = 'SONANDO';
+
+  // play
+  const vid = extractVideoId(alarm.url || '');
+  if (vid && ytReady) {
+    createPlayer(vid, true);
+  } else {
+    // fallback beep
+    playBeep();
+  }
+
+  // auto-disable one-shot alarms
+  if (alarm.days.length === 0) {
+    alarm.enabled = false;
+    saveAlarms();
+    renderAlarms();
+  }
+
+  // notify
+  if (Notification.permission === 'granted') {
+    new Notification('⏰ ' + alarm.name, { body: alarm.time, silent: true });
+  }
+}
+
+function stopAlarm() {
+  if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+    ytPlayer.stopVideo();
+  }
+  const container = document.getElementById('yt-container');
+  container.classList.remove('visible');
+  container.innerHTML = '<div id="yt-player-el"></div>';
+  ytPlayer = null;
+
+  document.getElementById('stop-btn').classList.remove('visible');
+  document.getElementById('status-dot').classList.remove('active');
+  document.getElementById('status-label').textContent = 'ACTIVO';
+
+  document.querySelectorAll('.alarm-card').forEach(el => el.classList.remove('ringing'));
+  ringingId = null;
+}
+
+// ─────────────────────────────────────────
+//  BEEP FALLBACK
+// ─────────────────────────────────────────
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep(freq, start, dur) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq;
+      o.type = 'sine';
+      g.gain.setValueAtTime(0.3, ctx.currentTime + start);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      o.start(ctx.currentTime + start);
+      o.stop(ctx.currentTime + start + dur + 0.05);
+    }
+    for (let i = 0; i < 5; i++) beep(880, i * 0.4, 0.3);
+  } catch(e) {}
+}
+
+// ─────────────────────────────────────────
+//  NEXT ALARM DISPLAY
+// ─────────────────────────────────────────
+function updateNextAlarm() {
+  const active = alarms.filter(a => a.enabled);
+  if (active.length === 0) {
+    document.getElementById('next-alarm').textContent = '';
+    return;
+  }
+  const now = new Date();
+  let minDiff = Infinity, minAlarm = null;
+  for (const a of active) {
+    const [h, m] = a.time.split(':').map(Number);
+    const next = new Date(now);
+    next.setHours(h, m, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    const diff = next - now;
+    if (diff < minDiff) { minDiff = diff; minAlarm = a; }
+  }
+  if (!minAlarm) return;
+  const h = Math.floor(minDiff / 3600000);
+  const m = Math.floor((minDiff % 3600000) / 60000);
+  let str = `PRÓXIMA · ${minAlarm.name} · ${minAlarm.time}`;
+  if (h > 0) str += ` · en ${h}h ${m}m`;
+  else if (m > 0) str += ` · en ${m}m`;
+  else str += ` · ¡AHORA!`;
+  document.getElementById('next-alarm').textContent = str;
+}
+
+// ─────────────────────────────────────────
+//  ADD / REMOVE
+// ─────────────────────────────────────────
+function addAlarm() {
+  const time = document.getElementById('inp-time').value;
+  const name = document.getElementById('inp-name').value.trim() || 'Alarma';
+  const url  = document.getElementById('inp-url').value.trim();
+
+  if (!time) { alert('Elegí una hora primero.'); return; }
+  if (url && !extractVideoId(url)) {
+    alert('La URL de YouTube no parece válida. Asegurate de pegar la URL completa.'); return;
+  }
+
+  const alarm = {
+    id:      Date.now(),
+    time,
+    name,
+    url,
+    days:    [...selectedDays],
+    enabled: true
+  };
+
+  alarms.push(alarm);
+  saveAlarms();
+  renderAlarms();
+  updateNextAlarm();
+
+  // reset form
+  document.getElementById('inp-time').value = '';
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-url').value  = '';
+  selectedDays.clear();
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('on'));
+}
+
+function deleteAlarm(id) {
+  alarms = alarms.filter(a => a.id !== id);
+  saveAlarms();
+  renderAlarms();
+  updateNextAlarm();
+}
+
+function toggleAlarm(id) {
+  const a = alarms.find(x => x.id === id);
+  if (a) { a.enabled = !a.enabled; saveAlarms(); updateNextAlarm(); }
+  const card = document.querySelector(`.alarm-card[data-id="${id}"]`);
+  if (card) card.classList.toggle('disabled', !a.enabled);
+}
+
+function saveAlarms() {
+  localStorage.setItem('alarms', JSON.stringify(alarms));
+}
+
+// ─────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────
+function renderAlarms() {
+  const list = document.getElementById('alarm-list');
+  if (alarms.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="icon">⏰</div>
+      Todavía no hay alarmas.<br>Agregá una arriba.
+    </div>`;
+    return;
+  }
+
+  // sort by time
+  const sorted = [...alarms].sort((a,b) => a.time.localeCompare(b.time));
+
+  list.innerHTML = sorted.map(a => {
+    const vid = extractVideoId(a.url || '');
+    const subLabel = vid
+      ? `▶ ${a.url.length > 35 ? a.url.slice(0,35)+'…' : a.url}`
+      : '🔔 Beep de sistema';
+    const daysLabel = a.days.length > 0
+      ? a.days.sort().map(d => DAYS_ES[d]).join(' · ')
+      : 'Una sola vez';
+    return `
+    <div class="alarm-card${a.enabled?'':' disabled'}" data-id="${a.id}">
+      <div class="alarm-time">${a.time}</div>
+      <div class="alarm-info">
+        <div class="alarm-name">${escHtml(a.name)}</div>
+        <div class="alarm-sub">${escHtml(subLabel)}</div>
+        <div class="alarm-days">${daysLabel}</div>
+      </div>
+      <div class="alarm-actions">
+        <label class="toggle">
+          <input type="checkbox" ${a.enabled?'checked':''} onchange="toggleAlarm(${a.id})">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <button class="btn-delete" onclick="deleteAlarm(${a.id})" title="Eliminar">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────
+//  PREVIEW
+// ─────────────────────────────────────────
+function previewVideo() {
+  const url = document.getElementById('inp-url').value.trim();
+  const vid = extractVideoId(url);
+  if (!vid) { alert('Pegá una URL de YouTube válida primero.'); return; }
+  if (!ytReady) { alert('El reproductor aún está cargando. Esperá un segundo.'); return; }
+  createPlayer(vid, true);
+  document.getElementById('stop-btn').classList.add('visible');
+}
+
+// ─────────────────────────────────────────
+//  UNLOCK
+// ─────────────────────────────────────────
+function unlock() {
+  unlocked = true;
+  document.getElementById('unlock-banner').style.display = 'none';
+
+  loadYTApi();
+  startClock();
+
+  document.getElementById('status-dot').classList.add('active');
+  document.getElementById('status-label').textContent = 'ACTIVO';
+
+  // Request notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // Keep screen on (mobile)
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(() => {});
+  }
+}
+
+// ─────────────────────────────────────────
+//  DAYS SELECTOR
+// ─────────────────────────────────────────
+document.getElementById('days-row').addEventListener('click', e => {
+  const btn = e.target.closest('.day-btn');
+  if (!btn) return;
+  const d = parseInt(btn.dataset.d);
+  if (selectedDays.has(d)) { selectedDays.delete(d); btn.classList.remove('on'); }
+  else                      { selectedDays.add(d);    btn.classList.add('on'); }
+});
+
+// ─────────────────────────────────────────
+//  ENTER key on inputs
+// ─────────────────────────────────────────
+['inp-time','inp-name','inp-url'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') addAlarm();
+  });
+});
+
+// ─────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────
+renderAlarms();
+</script>
+</body>
+</html>
